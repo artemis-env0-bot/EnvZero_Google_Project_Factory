@@ -1,0 +1,292 @@
+version: 2
+shell: bash
+
+deploy:
+  steps:
+    terraformPlan:
+      before:
+        - name: Who is authenticated?
+          run: |
+            set -euo pipefail
+            echo "=== Authenticated principal ==="
+            if [ -n "${GOOGLE_CREDENTIALS-}" ]; then
+              echo "$GOOGLE_CREDENTIALS" | jq -r '.client_email'
+            elif [ -n "${GOOGLE_APPLICATION_CREDENTIALS-}" ] && [ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+              jq -r '.client_email' "$GOOGLE_APPLICATION_CREDENTIALS"
+            else
+              gcloud auth list --filter=status:ACTIVE --format='value(account)' || true
+            fi
+
+        - name: Generate env0.auto.tfvars.json (force fresh project_id when creating)
+          run: |
+            set -euo pipefail
+
+            rm -f env0.auto.tfvars.json
+            echo "Removed env0.auto.tfvars.json to force fresh inputs for this run."
+
+            resolve() {
+              local key="$1"
+              local tfvar="TF_VAR_${key}"
+              if [ -n "${!tfvar-}" ]; then
+                echo "${!tfvar}"
+              elif [ -n "${!key-}" ]; then
+                echo "${!key}"
+              else
+                echo ""
+              fi
+            }
+
+            RES_BOOTSTRAP_PROJECT_ID="$(resolve bootstrap_project_id)"
+            RES_BILLING_ACCOUNT="$(resolve billing_account)"
+            RES_ORG_ID="$(resolve org_id)"
+            RES_FOLDER_ID="$(resolve folder_id)"
+            RES_PROJECT_NAME_PREFIX="$(resolve project_name_prefix)"
+            RES_BUCKET_LOCATION="$(resolve bucket_location)"
+            RES_REGION="$(resolve region)"
+            RES_ENABLE_PD="$(resolve enable_persistent_disk)"
+            RES_DISK_ZONE="$(resolve disk_zone)"
+            RES_CALLER_SA="$(resolve caller_sa_email)"
+            RES_EXISTING_PROJECT_ID="$(resolve existing_project_id)"
+            RES_PROJECT_ID_HINT="$(resolve project_id)"
+            RES_DEPLOYER_USER_EMAIL="$(resolve deployer_user_email)"
+
+            echo "bootstrap_project_id=${RES_BOOTSTRAP_PROJECT_ID:-<missing>}"
+            echo "billing_account=${RES_BILLING_ACCOUNT:-<missing>}"
+            echo "org_id=${RES_ORG_ID:-<empty>}"
+            echo "folder_id=${RES_FOLDER_ID:-<empty>}"
+            echo "existing_project_id(hint)=${RES_EXISTING_PROJECT_ID:-<none>}"
+            echo "project_id(hint)=${RES_PROJECT_ID_HINT:-<none>}"
+
+            # If both provided, prefer folder_id
+            if [ -n "${RES_ORG_ID}" ] && [ -n "${RES_FOLDER_ID}" ]; then
+              echo "Both org_id and folder_id were provided; using folder_id and ignoring org_id." >&2
+              RES_ORG_ID=""
+            fi
+
+            missing=0
+            [ -z "${RES_BOOTSTRAP_PROJECT_ID}" ] && echo "Missing required: bootstrap_project_id" >&2 && missing=1
+            [ -z "${RES_BILLING_ACCOUNT}" ] && echo "Missing required: billing_account" >&2 && missing=1
+            if [ -z "${RES_ORG_ID}" ] && [ -z "${RES_FOLDER_ID}" ]; then
+              echo "Exactly one of org_id or folder_id must be set." >&2
+              missing=1
+            fi
+            [ "${missing}" -ne 0 ] && exit 1
+
+            RES_PROJECT_NAME_PREFIX="${RES_PROJECT_NAME_PREFIX:-env0-demo}"
+            RES_BUCKET_LOCATION="${RES_BUCKET_LOCATION:-US}"
+            RES_REGION="${RES_REGION:-us-central1}"
+            RES_ENABLE_PD="${RES_ENABLE_PD:-false}"
+            RES_DISK_ZONE="${RES_DISK_ZONE:-us-central1-a}"
+
+            EPD="$(echo "${RES_ENABLE_PD}" | tr '[:upper:]' '[:lower:]')"
+            if [ "${EPD}" != "true" ] && [ "${EPD}" != "false" ]; then
+              EPD="false"
+            fi
+
+            randhex() {
+              if command -v openssl >/dev/null 2>&1; then
+                openssl rand -hex 3
+              else
+                head -c3 /dev/urandom | od -An -tx1 | tr -d ' \n'
+              fi
+            }
+
+            FINAL_EXISTING_ID=""
+            FINAL_NEW_ID=""
+
+            if [ -n "${RES_EXISTING_PROJECT_ID}" ]; then
+              # Adopt path
+              if gcloud projects describe "${RES_EXISTING_PROJECT_ID}" --format='value(lifecycleState)' >/dev/null 2>&1; then
+                FINAL_EXISTING_ID="${RES_EXISTING_PROJECT_ID}"
+                echo "Adopting existing project: ${FINAL_EXISTING_ID}"
+              else
+                echo "ERROR: existing_project_id not found or no access: ${RES_EXISTING_PROJECT_ID}" >&2
+                exit 1
+              fi
+            else
+              # Create path
+              # IMPORTANT: If project_id is explicitly set in env0, we will use it.
+              # If you want randomness, DO NOT set project_id in env0.
+              CANDIDATE="${RES_PROJECT_ID_HINT}"
+              if [ -z "${CANDIDATE}" ]; then
+                CANDIDATE="${RES_PROJECT_NAME_PREFIX}-$(randhex)"
+              fi
+
+              # If candidate exists (any state), generate new
+              if gcloud projects describe "${CANDIDATE}" --format='value(lifecycleState)' >/dev/null 2>&1; then
+                STATE="$(gcloud projects describe "${CANDIDATE}" --format='value(lifecycleState)' || true)"
+                echo "Candidate ${CANDIDATE} exists (state=${STATE}); generating a fresh project_id."
+                FINAL_NEW_ID="${RES_PROJECT_NAME_PREFIX}-$(randhex)"
+              else
+                FINAL_NEW_ID="${CANDIDATE}"
+              fi
+
+              # Extra collision guard
+              if gcloud projects describe "${FINAL_NEW_ID}" --format='value(lifecycleState)' >/dev/null 2>&1; then
+                echo "Fresh candidate ${FINAL_NEW_ID} also exists; generating another project_id."
+                FINAL_NEW_ID="${RES_PROJECT_NAME_PREFIX}-$(randhex)"
+              fi
+
+              echo "Final new project_id=${FINAL_NEW_ID}"
+            fi
+
+            jq -n \
+              --arg bpid "${RES_BOOTSTRAP_PROJECT_ID}" \
+              --arg ba "${RES_BILLING_ACCOUNT}" \
+              --arg oid "${RES_ORG_ID}" \
+              --arg fid "${RES_FOLDER_ID}" \
+              --arg exist "${FINAL_EXISTING_ID}" \
+              --arg pid "${FINAL_NEW_ID}" \
+              --arg pfx "${RES_PROJECT_NAME_PREFIX}" \
+              --arg loc "${RES_BUCKET_LOCATION}" \
+              --arg reg "${RES_REGION}" \
+              --arg dz "${RES_DISK_ZONE}" \
+              --arg caller "${RES_CALLER_SA}" \
+              --arg dep "${RES_DEPLOYER_USER_EMAIL}" \
+              --argjson epd "${EPD}" \
+              '{
+                bootstrap_project_id: $bpid,
+                billing_account: $ba,
+                org_id: (if ($oid|length) > 0 then $oid else null end),
+                folder_id: (if ($fid|length) > 0 then $fid else null end),
+                existing_project_id: (if ($exist|length) > 0 then $exist else "" end),
+                project_id: (if ($pid|length) > 0 then $pid else "" end),
+                project_name_prefix: $pfx,
+                bucket_location: $loc,
+                region: $reg,
+                enable_persistent_disk: $epd,
+                disk_zone: $dz,
+                caller_sa_email: (if ($caller|length) > 0 then $caller else "" end),
+                deployer_user_email: (if ($dep|length) > 0 then $dep else "" end)
+              }' > env0.auto.tfvars.json
+
+            echo "Wrote env0.auto.tfvars.json:"
+            cat env0.auto.tfvars.json | jq '{existing_project_id, project_id, org_id, folder_id, deployer_user_email}'
+
+      after:
+        - name: Show selected project_id (from tfvars)
+          run: |
+            set -euo pipefail
+            echo "Selected project_id:"
+            jq -r '.project_id' env0.auto.tfvars.json
+
+    terraformApply:
+      after:
+        - name: Print outputs (JSON)
+          run: |
+            tofu output -json || true
+
+destroy:
+  steps:
+    terraformDestroy:
+      before:
+        - name: Who is authenticated?
+          run: |
+            set -euo pipefail
+            echo "=== Authenticated principal ==="
+            if [ -n "${GOOGLE_CREDENTIALS-}" ]; then
+              echo "$GOOGLE_CREDENTIALS" | jq -r '.client_email'
+            elif [ -n "${GOOGLE_APPLICATION_CREDENTIALS-}" ] && [ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+              jq -r '.client_email' "$GOOGLE_APPLICATION_CREDENTIALS"
+            else
+              gcloud auth list --filter=status:ACTIVE --format='value(account)' || true
+            fi
+
+        - name: Generate env0.auto.tfvars.json (destroy path)
+          run: |
+            set -euo pipefail
+
+            rm -f env0.auto.tfvars.json
+            echo "Removed env0.auto.tfvars.json to regenerate for this destroy run."
+
+            resolve() {
+              local key="$1"
+              local tfvar="TF_VAR_${key}"
+              if [ -n "${!tfvar-}" ]; then
+                echo "${!tfvar}"
+              elif [ -n "${!key-}" ]; then
+                echo "${!key}"
+              else
+                echo ""
+              fi
+            }
+
+            RES_BOOTSTRAP_PROJECT_ID="$(resolve bootstrap_project_id)"
+            RES_BILLING_ACCOUNT="$(resolve billing_account)"
+            RES_ORG_ID="$(resolve org_id)"
+            RES_FOLDER_ID="$(resolve folder_id)"
+            RES_PROJECT_NAME_PREFIX="$(resolve project_name_prefix)"
+            RES_BUCKET_LOCATION="$(resolve bucket_location)"
+            RES_REGION="$(resolve region)"
+            RES_ENABLE_PD="$(resolve enable_persistent_disk)"
+            RES_DISK_ZONE="$(resolve disk_zone)"
+            RES_CALLER_SA="$(resolve caller_sa_email)"
+            RES_EXISTING_PROJECT_ID="$(resolve existing_project_id)"
+            RES_PROJECT_ID_HINT="$(resolve project_id)"
+            RES_DEPLOYER_USER_EMAIL="$(resolve deployer_user_email)"
+
+            echo "bootstrap_project_id=${RES_BOOTSTRAP_PROJECT_ID:-<missing>}"
+            echo "billing_account=${RES_BILLING_ACCOUNT:-<missing>}"
+            echo "org_id=${RES_ORG_ID:-<empty>}"
+            echo "folder_id=${RES_FOLDER_ID:-<empty>}"
+            echo "existing_project_id=${RES_EXISTING_PROJECT_ID:-<none>}"
+            echo "project_id=${RES_PROJECT_ID_HINT:-<none>}"
+
+            # If both provided, prefer folder_id
+            if [ -n "${RES_ORG_ID}" ] && [ -n "${RES_FOLDER_ID}" ]; then
+              echo "Both org_id and folder_id were provided; using folder_id and ignoring org_id." >&2
+              RES_ORG_ID=""
+            fi
+
+            missing=0
+            [ -z "${RES_BOOTSTRAP_PROJECT_ID}" ] && echo "Missing required: bootstrap_project_id" >&2 && missing=1
+            [ -z "${RES_BILLING_ACCOUNT}" ] && echo "Missing required: billing_account" >&2 && missing=1
+            if [ -z "${RES_ORG_ID}" ] && [ -z "${RES_FOLDER_ID}" ]; then
+              echo "Exactly one of org_id or folder_id must be set." >&2
+              missing=1
+            fi
+            [ "${missing}" -ne 0 ] && exit 1
+
+            RES_PROJECT_NAME_PREFIX="${RES_PROJECT_NAME_PREFIX:-env0-demo}"
+            RES_BUCKET_LOCATION="${RES_BUCKET_LOCATION:-US}"
+            RES_REGION="${RES_REGION:-us-central1}"
+            RES_ENABLE_PD="${RES_ENABLE_PD:-false}"
+            RES_DISK_ZONE="${RES_DISK_ZONE:-us-central1-a}"
+
+            EPD="$(echo "${RES_ENABLE_PD}" | tr '[:upper:]' '[:lower:]')"
+            if [ "${EPD}" != "true" ] && [ "${EPD}" != "false" ]; then
+              EPD="false"
+            fi
+
+            jq -n \
+              --arg bpid "${RES_BOOTSTRAP_PROJECT_ID}" \
+              --arg ba "${RES_BILLING_ACCOUNT}" \
+              --arg oid "${RES_ORG_ID}" \
+              --arg fid "${RES_FOLDER_ID}" \
+              --arg exist "${RES_EXISTING_PROJECT_ID}" \
+              --arg pid "${RES_PROJECT_ID_HINT}" \
+              --arg pfx "${RES_PROJECT_NAME_PREFIX}" \
+              --arg loc "${RES_BUCKET_LOCATION}" \
+              --arg reg "${RES_REGION}" \
+              --arg dz "${RES_DISK_ZONE}" \
+              --arg caller "${RES_CALLER_SA}" \
+              --arg dep "${RES_DEPLOYER_USER_EMAIL}" \
+              --argjson epd "${EPD}" \
+              '{
+                bootstrap_project_id: $bpid,
+                billing_account: $ba,
+                org_id: (if ($oid|length) > 0 then $oid else null end),
+                folder_id: (if ($fid|length) > 0 then $fid else null end),
+                existing_project_id: (if ($exist|length) > 0 then $exist else "" end),
+                project_id: (if ($pid|length) > 0 then $pid else "" end),
+                project_name_prefix: $pfx,
+                bucket_location: $loc,
+                region: $reg,
+                enable_persistent_disk: $epd,
+                disk_zone: $dz,
+                caller_sa_email: (if ($caller|length) > 0 then $caller else "" end),
+                deployer_user_email: (if ($dep|length) > 0 then $dep else "" end)
+              }' > env0.auto.tfvars.json
+
+            echo "Wrote env0.auto.tfvars.json (destroy path):"
+            cat env0.auto.tfvars.json | jq '{existing_project_id, project_id, org_id, folder_id, deployer_user_email}'
