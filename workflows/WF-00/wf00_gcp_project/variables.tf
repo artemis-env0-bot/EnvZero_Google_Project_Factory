@@ -4,7 +4,7 @@ variable "bootstrap_project_id" {
 }
 
 variable "billing_account" {
-  description = "Billing account ID (e.g., 000000-000000-000000)."
+  description = "Billing account ID, for example 000000-000000-000000."
   type        = string
 }
 
@@ -15,15 +15,20 @@ variable "region" {
 }
 
 variable "org_id" {
-  description = "Organization ID. Leave empty if using folder_id."
+  description = "Organization ID. Leave empty when using folder_id."
   type        = string
   default     = ""
 }
 
 variable "folder_id" {
-  description = "Folder ID numeric string, for example 621599609930. Leave empty if using org_id."
+  description = "Folder ID numeric string. WF-00 should use the dedicated env0 demo sandbox folder."
   type        = string
   default     = ""
+
+  validation {
+    condition     = trimspace(var.folder_id) != "621599609930"
+    error_message = "WF-00 must not deploy into system-gsuite folder 621599609930. Use the dedicated env0-demo-sandbox folder 696328868243."
+  }
 }
 
 variable "project_name_prefix" {
@@ -33,32 +38,33 @@ variable "project_name_prefix" {
 }
 
 variable "existing_project_id" {
-  description = "If set, adopt this existing project ID instead of creating a new project."
+  description = "Compatibility input retained for existing env0 variable sets. WF-00 always creates and manages its own project, so this value is intentionally ignored."
   type        = string
   default     = ""
 }
 
 variable "caller_sa_email" {
-  description = "Optional. env0 runner service account email. If empty, we derive the caller identity from google_client_openid_userinfo."
+  description = "Optional env0 runner service account email. If empty, the caller identity is derived from google_client_openid_userinfo."
   type        = string
   default     = ""
 }
 
 variable "deployer_user_email" {
-  description = "Optional. Human deployer email. If set, grants editor on the project so the deployer can delete created resources."
+  description = "Optional human deployer email. If set, grants editor on the workflow project."
   type        = string
   default     = ""
 }
 
 variable "deletion_policy" {
-  description = "Project deletion policy for projects created by GPF. Typical values are DELETE or PREVENT."
+  description = "Compatibility input retained for existing env0 configuration. WF-00 intentionally enforces DELETE in main.tf because the workflow owns disposable sandbox projects."
   type        = string
   default     = "DELETE"
 }
 
 variable "activate_apis" {
-  description = "APIs enabled on the target project. In create mode GPF enables these. In adopt mode we enable them via google_project_service."
+  description = "APIs enabled on the project managed by WF-00."
   type        = list(string)
+
   default = [
     "cloudresourcemanager.googleapis.com",
     "serviceusage.googleapis.com",
