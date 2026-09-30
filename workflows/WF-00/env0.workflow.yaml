@@ -10,14 +10,14 @@ environments:
     name: WF-00 GCP Project
     templateName: artem_simulation_gcp_project
     revision: v2.0.0s
-    workspace: wf00-gcp-project
+    workspace: wf00-v200s-rebuild01-gcp-project
     requiresApproval: false
 
   wf00-network:
     name: WF-00 GCP Network
     templateName: artem_simulation_gcp_network
     revision: v2.0.0s
-    workspace: wf00-gcp-network
+    workspace: wf00-v200s-rebuild01-gcp-network
     requiresApproval: false
     needs:
       - wf00-project
@@ -26,7 +26,7 @@ environments:
     name: WF-00 GCP Bucket
     templateName: artem_simulation_gcp_bucket
     revision: v2.0.0s
-    workspace: wf00-gcp-bucket
+    workspace: wf00-v200s-rebuild01-gcp-bucket
     requiresApproval: false
     needs:
       - wf00-project
@@ -35,7 +35,7 @@ environments:
     name: WF-00 GCP Virtual Machine
     templateName: artem_simulation_gcp_virtual_machine
     revision: v2.0.0s
-    workspace: wf00-gcp-virtual-machine
+    workspace: wf00-v200s-rebuild01-gcp-virtual-machine
     requiresApproval: false
     needs:
       - wf00-network
@@ -44,7 +44,7 @@ environments:
     name: WF-00 GCP Persistent Disk
     templateName: artem_simulation_gcp_persistent_disk
     revision: v2.0.0s
-    workspace: wf00-gcp-persistent-disk
+    workspace: wf00-v200s-rebuild01-gcp-persistent-disk
     requiresApproval: false
     needs:
       - wf00-virtual-machine
@@ -53,7 +53,7 @@ environments:
     name: WF-00 GCP GKE
     templateName: artem_simulation_gcp_gke
     revision: v2.0.0s
-    workspace: wf00-gcp-gke
+    workspace: wf00-v200s-rebuild01-gcp-gke
     requiresApproval: false
     needs:
       - wf00-network
