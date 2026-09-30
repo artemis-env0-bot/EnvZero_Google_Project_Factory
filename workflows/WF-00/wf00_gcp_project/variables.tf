@@ -6,6 +6,11 @@ variable "bootstrap_project_id" {
 variable "billing_account" {
   description = "Billing account ID, for example 000000-000000-000000."
   type        = string
+
+  validation {
+    condition     = trimspace(var.billing_account) != ""
+    error_message = "billing_account must not be empty."
+  }
 }
 
 variable "region" {
@@ -21,21 +26,25 @@ variable "org_id" {
 }
 
 variable "folder_id" {
-  description = "Folder ID numeric string. WF-00 should use the dedicated env0 demo sandbox folder."
+  description = "Folder ID numeric string. WF-00 should deploy into the dedicated env0 demo sandbox folder."
   type        = string
   default     = ""
 
   validation {
     condition     = trimspace(var.folder_id) != "621599609930"
-    error_message = "WF-00 must not deploy into system-gsuite folder 621599609930. Use the dedicated env0-demo-sandbox folder 696328868243."
+    error_message = "WF-00 must not deploy into system-gsuite folder 621599609930. Use env0-demo-sandbox folder 696328868243."
   }
 }
 
 variable "project_name_prefix" {
-  description = "Prefix used as the project display name and as the base for project_id when random_project_id is enabled."
+  description = "Prefix used as the project display name and as the base for the generated project ID."
   type        = string
   default     = "env0-demo"
 }
+
+################################################################################
+# Compatibility inputs
+################################################################################
 
 variable "existing_project_id" {
   description = "Compatibility input retained for existing env0 variable sets. WF-00 always creates and manages its own project, so this value is intentionally ignored."
@@ -43,26 +52,34 @@ variable "existing_project_id" {
   default     = ""
 }
 
+variable "deletion_policy" {
+  description = "Compatibility input retained for existing env0 configuration. WF-00 enforces DELETE directly in main.tf."
+  type        = string
+  default     = "DELETE"
+}
+
+################################################################################
+# IAM
+################################################################################
+
 variable "caller_sa_email" {
-  description = "Optional env0 runner service account email. If empty, the caller identity is derived from google_client_openid_userinfo."
+  description = "Optional env0 runner service account email. If empty, the authenticated caller identity is used."
   type        = string
   default     = ""
 }
 
 variable "deployer_user_email" {
-  description = "Optional human deployer email. If set, grants editor on the workflow project."
+  description = "Optional human deployer email. If set, the user receives roles/editor on the created project."
   type        = string
   default     = ""
 }
 
-variable "deletion_policy" {
-  description = "Compatibility input retained for existing env0 configuration. WF-00 intentionally enforces DELETE in main.tf because the workflow owns disposable sandbox projects."
-  type        = string
-  default     = "DELETE"
-}
+################################################################################
+# Google APIs
+################################################################################
 
 variable "activate_apis" {
-  description = "APIs enabled on the project managed by WF-00."
+  description = "Google APIs enabled on the project created by WF-00."
   type        = list(string)
 
   default = [
