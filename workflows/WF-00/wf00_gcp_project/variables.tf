@@ -4,13 +4,8 @@ variable "bootstrap_project_id" {
 }
 
 variable "billing_account" {
-  description = "Billing account ID, for example 000000-000000-000000."
+  description = "Billing account ID."
   type        = string
-
-  validation {
-    condition     = trimspace(var.billing_account) != ""
-    error_message = "billing_account must not be empty."
-  }
 }
 
 variable "region" {
@@ -26,7 +21,7 @@ variable "org_id" {
 }
 
 variable "folder_id" {
-  description = "Folder ID numeric string. WF-00 should deploy into the dedicated env0 demo sandbox folder."
+  description = "Folder ID numeric string."
   type        = string
   default     = ""
 
@@ -37,49 +32,43 @@ variable "folder_id" {
 }
 
 variable "project_name_prefix" {
-  description = "Prefix used as the project display name and as the base for the generated project ID."
+  description = "Prefix used for the generated GCP project ID and project name."
   type        = string
   default     = "env0-demo"
 }
 
-################################################################################
-# Compatibility inputs
-################################################################################
+variable "project_generation" {
+  description = "Generation value used to force creation of a new globally unique project ID."
+  type        = string
+  default     = "1"
+}
 
 variable "existing_project_id" {
-  description = "Compatibility input retained for existing env0 variable sets. WF-00 always creates and manages its own project, so this value is intentionally ignored."
+  description = "Compatibility input. WF-00 always creates its own project."
   type        = string
   default     = ""
 }
 
 variable "deletion_policy" {
-  description = "Compatibility input retained for existing env0 configuration. WF-00 enforces DELETE directly in main.tf."
+  description = "Compatibility input. WF-00 enforces DELETE in main.tf."
   type        = string
   default     = "DELETE"
 }
 
-################################################################################
-# IAM
-################################################################################
-
 variable "caller_sa_email" {
-  description = "Optional env0 runner service account email. If empty, the authenticated caller identity is used."
+  description = "Optional env0 runner service account email."
   type        = string
   default     = ""
 }
 
 variable "deployer_user_email" {
-  description = "Optional human deployer email. If set, the user receives roles/editor on the created project."
+  description = "Optional human deployer email."
   type        = string
   default     = ""
 }
 
-################################################################################
-# Google APIs
-################################################################################
-
 variable "activate_apis" {
-  description = "Google APIs enabled on the project created by WF-00."
+  description = "Google APIs enabled on the WF-00 project."
   type        = list(string)
 
   default = [
