@@ -1,8 +1,14 @@
 data "google_client_openid_userinfo" "me" {}
 
-locals {
-  creating = true
+resource "random_id" "project_suffix" {
+  byte_length = 4
 
+  keepers = {
+    generation = var.project_generation
+  }
+}
+
+locals {
   parent_folder_id = trimspace(var.folder_id) != "" ? trimspace(var.folder_id) : null
 
   parent_org_id = (
@@ -39,11 +45,13 @@ locals {
     ? "user:${local.deployer_email}"
     : ""
   )
+
+  generated_project_id = "${var.project_name_prefix}-${random_id.project_suffix.hex}"
 }
 
 output "whoami_email" {
   value       = data.google_client_openid_userinfo.me.email
-  description = "Identity running OpenTofu or Terraform in env0."
+  description = "Identity running Terraform in env0."
 }
 
 module "project_factory" {
@@ -55,18 +63,17 @@ module "project_factory" {
   folder_id = local.parent_folder_id
 
   name              = var.project_name_prefix
-  billing_account   = var.billing_account
-  random_project_id = true
+  project_id        = local.generated_project_id
+  random_project_id = false
 
-  activate_apis = var.activate_apis
+  billing_account = var.billing_account
+  activate_apis   = var.activate_apis
 
   default_service_account = "deprivilege"
 
-  deletion_policy = "DELETE"
-
+  deletion_policy             = "DELETE"
   disable_services_on_destroy = false
-
-  auto_create_network = true
+  auto_create_network         = true
 }
 
 locals {
