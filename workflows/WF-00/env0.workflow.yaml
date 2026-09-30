@@ -1,6 +1,6 @@
 settings:
   # Google Project Factory Workflow | artem@env0
-  # version = v.2.0.0s
+  # version = v2.0.0s
   # detach keeps sub-environments if you remove them from the workflow file later
   # destroy would automatically destroy removed sub-environments on the next workflow deploy
   environmentRemovalStrategy: detach
@@ -9,14 +9,14 @@ environments:
   wf00-project:
     name: WF-00 GCP Project
     templateName: artem_simulation_gcp_project
-    revision: v.2.0.0s
+    revision: v2.0.0s
     workspace: wf00-gcp-project
     requiresApproval: false
 
   wf00-network:
     name: WF-00 GCP Network
     templateName: artem_simulation_gcp_network
-    revision: v.2.0.0s
+    revision: v2.0.0s
     workspace: wf00-gcp-network
     requiresApproval: false
     needs:
@@ -25,7 +25,7 @@ environments:
   wf00-bucket:
     name: WF-00 GCP Bucket
     templateName: artem_simulation_gcp_bucket
-    revision: v.2.0.0s
+    revision: v2.0.0s
     workspace: wf00-gcp-bucket
     requiresApproval: false
     needs:
@@ -34,7 +34,7 @@ environments:
   wf00-virtual-machine:
     name: WF-00 GCP Virtual Machine
     templateName: artem_simulation_gcp_virtual_machine
-    revision: v.2.0.0s
+    revision: v2.0.0s
     workspace: wf00-gcp-virtual-machine
     requiresApproval: false
     needs:
@@ -43,7 +43,7 @@ environments:
   wf00-persistent-disk:
     name: WF-00 GCP Persistent Disk
     templateName: artem_simulation_gcp_persistent_disk
-    revision: v.2.0.0s
+    revision: v2.0.0s
     workspace: wf00-gcp-persistent-disk
     requiresApproval: false
     needs:
@@ -52,7 +52,7 @@ environments:
   wf00-gke:
     name: WF-00 GCP GKE
     templateName: artem_simulation_gcp_gke
-    revision: v.2.0.0s
+    revision: v2.0.0s
     workspace: wf00-gcp-gke
     requiresApproval: false
     needs:
