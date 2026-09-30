@@ -2,7 +2,7 @@ settings:
   # Google Project Factory Workflow | artem@env0
   # version = v.2.0.0s
   # detach keeps sub-environments if you remove them from the workflow file later
-  # destroy would automatically destroy removed sub.environments on the next workflow deploy
+  # destroy would automatically destroy removed sub-environments on the next workflow deploy
   environmentRemovalStrategy: detach
 
 environments:
