@@ -3,6 +3,11 @@ variable "project_id" {
   type        = string
 }
 
+variable "project_number" {
+  description = "Target GCP project number used to generate a globally unique bucket name."
+  type        = string
+}
+
 variable "region" {
   description = "Default region for provider context."
   type        = string
@@ -28,13 +33,13 @@ variable "bucket_name_suffix" {
 }
 
 variable "bucket_name" {
-  description = "Compatibility input. Generated bucket names are used by WF-00."
+  description = "Compatibility input retained for existing env0 configuration. WF-00 generates the bucket name."
   type        = string
   default     = ""
 }
 
 variable "bucket_generation" {
-  description = "Generation value used to force creation of a new random bucket suffix."
+  description = "Generation value used to rotate the generated bucket name."
   type        = string
   default     = "1"
 }
