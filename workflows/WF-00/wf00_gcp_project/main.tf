@@ -1,29 +1,23 @@
 data "google_client_openid_userinfo" "me" {}
 
 locals {
-  # WF-00 always owns and manages its GCP project.
+  # WF-00 owns and manages the GCP project it creates.
   #
-  # Keep the Project Factory module instantiated at count = 1 so the existing
-  # Terraform state address remains:
-  #
-  # module.project_factory[0]
-  #
-  # This is important for environments that were originally created with
-  # deletion_policy = PREVENT. The resource must remain managed long enough
-  # for OpenTofu to update the state to deletion_policy = DELETE before any
-  # future destroy operation is attempted.
+  # This workflow intentionally does not adopt an existing project. A fresh
+  # Terraform workspace must result in a fresh GCP project created directly
+  # inside the configured sandbox folder.
   creating = true
 
-  # Parent selection.
-  #
-  # folder_id takes precedence when both values are accidentally supplied.
-  # The WF-00 sandbox should normally use folder:
-  #
-  # 696328868243
-  parent_folder_id = var.folder_id != "" ? var.folder_id : null
-  parent_org_id    = var.folder_id != "" ? null : (var.org_id != "" ? var.org_id : null)
+  # folder_id takes precedence when supplied.
+  parent_folder_id = trimspace(var.folder_id) != "" ? trimspace(var.folder_id) : null
 
-  # Caller identity for IAM grants.
+  parent_org_id = (
+    local.parent_folder_id == null && trimspace(var.org_id) != ""
+    ? trimspace(var.org_id)
+    : null
+  )
+
+  # Determine the identity that should receive project-level access.
   caller_email = trimspace(
     var.caller_sa_email != ""
     ? var.caller_sa_email
@@ -56,14 +50,13 @@ locals {
 
 output "whoami_email" {
   value       = data.google_client_openid_userinfo.me.email
-  description = "Identity running OpenTofu in env0."
+  description = "Identity running OpenTofu or Terraform in env0."
 }
 
-# Create and manage the WF-00 project using Google Project Factory.
-#
-# count intentionally remains present and fixed at 1. Do not remove count
-# from this module without performing a Terraform state migration because the
-# existing resource address is module.project_factory[0].
+################################################################################
+# Google Project Factory
+################################################################################
+
 module "project_factory" {
   count   = 1
   source  = "terraform-google-modules/project-factory/google"
@@ -80,31 +73,32 @@ module "project_factory" {
 
   default_service_account = "deprivilege"
 
-  # WF-00 is a disposable sandbox workflow.
+  # WF-00 creates disposable sandbox projects.
   #
-  # This is intentionally hard-coded instead of consuming a variable so that
-  # an organization, project, environment, or variable-set override cannot
-  # accidentally restore PREVENT for this workflow.
-  #
-  # An existing project that has PREVENT recorded in Terraform state must
-  # first complete a normal apply with this resource still present. That
-  # updates the state to DELETE. A subsequent destroy can then delete it.
+  # This is intentionally enforced here rather than depending on an env0
+  # variable override. Projects created by this workflow must be deletable
+  # during destroy.
   deletion_policy = "DELETE"
 
-  # There is no reason to disable individual APIs before deleting a project
-  # that this workflow owns. Leaving services enabled also prevents another
-  # partially dismantled project if project deletion fails for an unrelated
-  # IAM or GCP issue.
+  # The entire project is disposable. There is no benefit in disabling each
+  # service individually before deleting the project.
   disable_services_on_destroy = false
 }
+
+################################################################################
+# Effective project values
+################################################################################
 
 locals {
   project_id     = module.project_factory[0].project_id
   project_number = module.project_factory[0].project_number
 }
 
-# Give the env0 runner identity editor on the project so subsequent
-# workflow components can create resources.
+################################################################################
+# IAM
+################################################################################
+
+# Give the env0 runner identity editor access inside the newly created project.
 resource "google_project_iam_member" "caller_editor" {
   count   = local.caller_member != "" ? 1 : 0
   project = local.project_id
@@ -112,8 +106,7 @@ resource "google_project_iam_member" "caller_editor" {
   member  = local.caller_member
 }
 
-# Give the deployer editor on the project so they can see and delete
-# resources created by the workflow.
+# Optionally give the human deployer editor access inside the new project.
 resource "google_project_iam_member" "deployer_editor" {
   count   = local.deployer_member != "" ? 1 : 0
   project = local.project_id
