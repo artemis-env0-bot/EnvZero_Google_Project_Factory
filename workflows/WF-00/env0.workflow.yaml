@@ -1,8 +1,6 @@
 settings:
   # Google Project Factory Workflow | artem@env0
   # version = v2.0.0s
-  # detach keeps sub-environments if you remove them from the workflow file later
-  # destroy would automatically destroy removed sub-environments on the next workflow deploy
   environmentRemovalStrategy: detach
 
 environments:
@@ -49,11 +47,11 @@ environments:
     needs:
       - wf00-virtual-machine
 
-  wf00-gke:
-    name: WF-00 GCP GKE
+  wf00-gke-rebuild02:
+    name: WF-00 GCP GKE Rebuild 02
     templateName: artem_simulation_gcp_gke
     revision: v2.0.0s
-    workspace: wf00-v200s-rebuild01-gcp-gke
+    workspace: wf00-v200s-rebuild02-gcp-gke
     requiresApproval: false
     needs:
       - wf00-network
