@@ -22,15 +22,21 @@ variable "bucket_name_prefix" {
 }
 
 variable "bucket_name_suffix" {
-  description = "Optional suffix for the bucket name. Use this to distinguish workflow variants such as large."
+  description = "Optional suffix for the bucket name."
   type        = string
   default     = ""
 }
 
 variable "bucket_name" {
-  description = "Optional exact bucket name override. If set, this value is used directly and must be globally unique."
+  description = "Compatibility input. Generated bucket names are used by WF-00."
   type        = string
   default     = ""
+}
+
+variable "bucket_generation" {
+  description = "Generation value used to force creation of a new random bucket suffix."
+  type        = string
+  default     = "1"
 }
 
 variable "force_destroy" {
