@@ -1,6 +1,6 @@
 settings:
   # Google Project Factory Workflow | artem@env0
-  # version = v.2.0.0
+  # version = v2.0.0
   environmentRemovalStrategy: destroy
 
 # Artem Simulation Build - GPF Project
@@ -9,7 +9,7 @@ environments:
   wf00-project:
     name: WF-00 GCP Project
     templateName: artem_simulation_gcp_project_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-project-rb001
     requiresApproval: false
 
@@ -18,7 +18,7 @@ environments:
   wf00-network:
     name: WF-00 GCP Network
     templateName: artem_simulation_gcp_network_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-network-rb001
     requiresApproval: false
     needs:
@@ -29,7 +29,7 @@ environments:
   wf00-bucket:
     name: WF-00 GCP Bucket
     templateName: artem_simulation_gcp_bucket_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-bucket-rb001
     requiresApproval: false
     needs:
@@ -40,7 +40,7 @@ environments:
   wf00-virtual-machine-00:
     name: WF-00 GCP Virtual Machine VM00
     templateName: artem_simulation_gcp_virtual_machine_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-virtual-machine-00-rb001
     requiresApproval: false
     needs:
@@ -49,7 +49,7 @@ environments:
   wf00-persistent-disk-00:
     name: WF-00 GCP Persistent Disk PD00
     templateName: artem_simulation_gcp_persistent_disk_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-persistent-disk-00-rb001
     requiresApproval: false
     needs:
@@ -58,7 +58,7 @@ environments:
   wf00-persistent-disk-01:
     name: WF-00 GCP Persistent Disk PD01
     templateName: artem_simulation_gcp_persistent_disk_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-persistent-disk-01-rb001
     requiresApproval: false
     needs:
@@ -69,7 +69,7 @@ environments:
   wf00-virtual-machine-01:
     name: WF-00 GCP Virtual Machine VM01
     templateName: artem_simulation_gcp_virtual_machine_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-virtual-machine-01-rb001
     requiresApproval: false
     needs:
@@ -78,7 +78,7 @@ environments:
   wf00-persistent-disk-02:
     name: WF-00 GCP Persistent Disk PD02
     templateName: artem_simulation_gcp_persistent_disk_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-persistent-disk-02-rb001
     requiresApproval: false
     needs:
@@ -87,7 +87,7 @@ environments:
   wf00-persistent-disk-03:
     name: WF-00 GCP Persistent Disk PD03
     templateName: artem_simulation_gcp_persistent_disk_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-persistent-disk-03-rb001
     requiresApproval: false
     needs:
@@ -98,7 +98,7 @@ environments:
   wf00-virtual-machine-02:
     name: WF-00 GCP Virtual Machine VM02
     templateName: artem_simulation_gcp_virtual_machine_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-virtual-machine-02-rb001
     requiresApproval: false
     needs:
@@ -107,7 +107,7 @@ environments:
   wf00-persistent-disk-04:
     name: WF-00 GCP Persistent Disk PD04
     templateName: artem_simulation_gcp_persistent_disk_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-persistent-disk-04-rb001
     requiresApproval: false
     needs:
@@ -116,7 +116,7 @@ environments:
   wf00-persistent-disk-05:
     name: WF-00 GCP Persistent Disk PD05
     templateName: artem_simulation_gcp_persistent_disk_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-persistent-disk-05-rb001
     requiresApproval: false
     needs:
@@ -127,7 +127,7 @@ environments:
   wf00-gke-00:
     name: WF-00 GCP GKE Cluster 00
     templateName: artem_simulation_gcp_gke_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-gke-00-rb001
     requiresApproval: false
     needs:
@@ -138,7 +138,7 @@ environments:
   wf00-gke-01:
     name: WF-00 GCP GKE Cluster 01
     templateName: artem_simulation_gcp_gke_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-gke-01-rb001
     requiresApproval: false
     needs:
@@ -149,7 +149,7 @@ environments:
   wf00-gke-02:
     name: WF-00 GCP GKE Cluster 02
     templateName: artem_simulation_gcp_gke_Large
-    revision: v.2.0.0
+    revision: v2.0.0
     workspace: wf00-large-gcp-gke-02-rb001
     requiresApproval: false
     needs:
