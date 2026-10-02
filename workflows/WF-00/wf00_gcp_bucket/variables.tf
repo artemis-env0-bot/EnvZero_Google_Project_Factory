@@ -3,6 +3,11 @@ variable "project_id" {
   type        = string
 }
 
+variable "project_number" {
+  description = "Target GCP project number used to generate a globally unique bucket name."
+  type        = string
+}
+
 variable "region" {
   description = "Default region for provider context."
   type        = string
@@ -22,15 +27,21 @@ variable "bucket_name_prefix" {
 }
 
 variable "bucket_name_suffix" {
-  description = "Optional suffix for the bucket name. Use this to distinguish workflow variants such as large."
+  description = "Optional suffix for the bucket name."
   type        = string
   default     = ""
 }
 
 variable "bucket_name" {
-  description = "Optional exact bucket name override. If set, this value is used directly and must be globally unique."
+  description = "Compatibility input retained for existing env0 configuration."
   type        = string
   default     = ""
+}
+
+variable "bucket_generation" {
+  description = "Generation value used to rotate the generated bucket name."
+  type        = string
+  default     = "1"
 }
 
 variable "force_destroy" {
