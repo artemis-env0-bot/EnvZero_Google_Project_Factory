@@ -1,7 +1,5 @@
 settings:
-  # Google Project Factory Workflow | artem@env0
-  # version = v2.0.0
-  environmentRemovalStrategy: destroy
+  environmentRemovalStrategy: detach
 
 environments:
   wf00-project:
@@ -110,29 +108,29 @@ environments:
     needs:
       - wf00-virtual-machine-02
 
-  wf00-gke-00:
-    name: WF-00 GCP GKE Cluster 00
+  wf00-gke-00-rebuild02:
+    name: WF-00 GCP GKE Cluster 00 RB02
     templateName: artem_simulation_gcp_gke_Large
     revision: v2.0.0
-    workspace: wf00-large-gcp-gke-00-rb002
+    workspace: wf00-large-gcp-gke-00-rb003
     requiresApproval: false
     needs:
       - wf00-network
 
-  wf00-gke-01:
-    name: WF-00 GCP GKE Cluster 01
+  wf00-gke-01-rebuild02:
+    name: WF-00 GCP GKE Cluster 01 RB02
     templateName: artem_simulation_gcp_gke_Large
     revision: v2.0.0
-    workspace: wf00-large-gcp-gke-01-rb002
+    workspace: wf00-large-gcp-gke-01-rb003
     requiresApproval: false
     needs:
       - wf00-network
 
-  wf00-gke-02:
-    name: WF-00 GCP GKE Cluster 02
+  wf00-gke-02-rebuild02:
+    name: WF-00 GCP GKE Cluster 02 RB02
     templateName: artem_simulation_gcp_gke_Large
     revision: v2.0.0
-    workspace: wf00-large-gcp-gke-02-rb002
+    workspace: wf00-large-gcp-gke-02-rb003
     requiresApproval: false
     needs:
       - wf00-network
